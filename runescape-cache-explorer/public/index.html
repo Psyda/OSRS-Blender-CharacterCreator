@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RuneScape Cache Explorer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary-color: #667eea;
+            --dark-bg: #3E3529;
+            --light-text: #e2e8f0;
+            --border-color: #5a4f40;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .header { background: rgba(255, 255, 255, 0.95); padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); margin-bottom: 20px; }
+        .header h1 { color: #4a5568; margin-bottom: 10px; }
+        .search-section { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 15px; }
+        .search-input { flex: 1; min-width: 200px; padding: 10px; border: 2px solid #e2e8f0; border-radius: 5px; font-size: 16px; }
+        .search-btn { padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background 0.3s; }
+        .search-btn:hover { background: #5a6fd8; }
+        .search-mode-toggle .search-btn { background: #a0aec0; }
+        .search-mode-toggle .search-btn.active { background: var(--primary-color); }
+        .blender-status { background: #f7fafc; padding: 10px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #e2e8f0; }
+        .blender-status.connected { background: #f0fff4; border-left-color: #48bb78; }
+        .blender-status.disconnected { background: #fff5f5; border-left-color: #f56565; }
+        .blender-controls { margin-top: 10px; padding: 10px; background: #f7fafc; border-radius: 5px; }
+        .blender-port-input { width: 80px; padding: 3px 5px; border: 1px solid #e2e8f0; border-radius: 3px; font-size: 12px; }
+        .blender-btn { background: #805ad5; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 0.3s; margin-right: 5px; }
+        .blender-btn:hover { background: #6b46c1; }
+        .blender-btn:disabled { background: #a0aec0; cursor: not-allowed; }
+        .main-content { display: grid; grid-template-columns: 400px 1fr; gap: 20px; align-items: flex-start; }
+        
+        /* Equipment Panel */
+        .equipment-panel { background: var(--dark-bg); padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); position: sticky; top: 20px; text-align: center; }
+        .equipment-header { color: var(--light-text); margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+        .equipment-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .gender-buttons { display: flex; gap: 5px; }
+        .gender-btn { flex: 1; padding: 8px 10px; border: 2px solid var(--border-color); background: #4a4033; color: var(--light-text); border-radius: 5px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .gender-btn:hover { border-color: var(--primary-color); }
+        .gender-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+        
+        /* Kit Categories Panel (for kit mode) */
+        .kit-categories { display: none; margin-bottom: 20px; }
+        .kit-categories.show { display: block; }
+        .kit-category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .kit-category-btn { padding: 12px; background: #4a4033; color: var(--light-text); border: 2px solid var(--border-color); border-radius: 5px; cursor: pointer; transition: all 0.3s; text-align: center; }
+        .kit-category-btn:hover, .kit-category-btn.active { border-color: var(--primary-color); background: rgba(102, 126, 234, 0.2); }
+        .kit-category-name { font-weight: bold; margin-bottom: 5px; }
+        .kit-category-count { font-size: 12px; color: #a0deff; }
+
+        .equipment-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(5, auto); gap: 10px; justify-items: center; align-items: center; margin-bottom: 20px; transition: opacity 0.3s; }
+        .equip-slot {
+            width: 80px; height: 80px; background-color: rgba(0,0,0,0.2); border: 2px dashed var(--border-color);
+            border-radius: 8px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center;
+            justify-content: center; position: relative; background-size: contain; background-position: center;
+            background-repeat: no-repeat;
+        }
+        .equip-slot:hover, .equip-slot.active { border-color: var(--primary-color); background-color: rgba(102, 126, 234, 0.2); }
+        .slot-name { font-size: 11px; color: white; background: rgba(0,0,0,0.6); padding: 2px 4px; border-radius: 3px; }
+        .clear-slot-btn {
+            position: absolute; top: -5px; right: -5px; width: 20px; height: 20px;
+            background: #f56565; color: white; border: 1px solid white; border-radius: 50%;
+            cursor: pointer; display: none; align-items: center; justify-content: center; font-weight: bold;
+        }
+        .equip-slot.equipped .clear-slot-btn { display: flex; }
+        .equip-slot.equipped .slot-name { display: none; }
+        
+        #slot-head { grid-area: 1 / 2; }
+        #slot-cape { grid-area: 2 / 1; }
+        #slot-amulet { grid-area: 2 / 2; }
+        #slot-weapon { grid-area: 3 / 1; }
+        #slot-torso { grid-area: 3 / 2; }
+        #slot-shield { grid-area: 3 / 3; }
+        #slot-legs { grid-area: 4 / 2; }
+        #slot-hands { grid-area: 5 / 1; }
+        #slot-boots { grid-area: 5 / 3; }
+
+        .send-set-btn { width: 100%; padding: 15px; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; font-weight: bold; transition: background 0.3s; margin-top: 10px; }
+        .send-set-btn:hover { background: #38a169; }
+        .send-set-btn:disabled { background: #a0aec0; cursor: not-allowed; }
+
+        .kits-list-container { display: none; margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; }
+        .kits-list-container.show { display: block; }
+        .kits-list { list-style: none; max-height: 150px; overflow-y: auto; text-align: left; }
+        .kit-item { display: flex; justify-content: space-between; align-items: center; color: var(--light-text); font-size: 12px; padding: 4px; border-bottom: 1px solid var(--border-color); }
+        .kit-item .kit-name { color: #a0deff; }
+        .remove-kit-btn { background: #c53030; color: white; border: none; border-radius: 3px; cursor: pointer; padding: 2px 5px; font-size: 10px;}
+
+        /* Content Area */
+        .content { background: rgba(255, 255, 255, 0.95); padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .results-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; }
+        .pagination { display: flex; gap: 10px; align-items: center; }
+        .page-btn { padding: 5px 10px; border: 1px solid #e2e8f0; background: white; cursor: pointer; border-radius: 3px; }
+        .page-btn:hover { background: #f7fafc; }
+        .page-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .item-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: white; transition: all 0.3s; cursor: pointer; }
+        .item-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+        .item-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; }
+        .item-name { font-weight: bold; color: #2d3748; font-size: 16px; }
+        .item-id { background: var(--primary-color); color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+        .item-details { font-size: 14px; color: #718096; word-break: break-all; }
+        .item-footer { margin-top: 10px; }
+        .kit-badge { background: #805ad5; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px; }
+        .send-kit-btn { background: #48bb78; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 5px; }
+        .send-kit-btn:hover { background: #38a169; }
+        .loading, .no-results { text-align: center; padding: 40px; color: #718096; }
+        
+        #search-tag-container { display: none; margin-top: 10px; }
+        .search-tag { background: #e2e8f0; color: #4a5568; padding: 5px 10px; border-radius: 15px; display: inline-flex; align-items: center; font-size: 14px; }
+        .search-tag button { background: #a0aec0; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; margin-left: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏰 RuneScape Cache Explorer</h1>
+            <div class="search-section">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search for items...">
+                <button class="search-btn" onclick="performSearch()">Search</button>
+            </div>
+            <div class="search-mode-toggle" style="margin-bottom: 15px; display: flex; gap: 10px;">
+                <button id="mode-items" class="search-btn active" onclick="setSearchMode('items')">Browse Items</button>
+                <button id="mode-kits" class="search-btn" onclick="setSearchMode('kits')">Browse Kits</button>
+            </div>
+             <div id="search-tag-container"></div>
+            <div class="blender-controls">
+                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <span style="font-weight: bold;">🎭 Blender Integration:</span>
+                    <div><label for="blenderPort" style="font-size: 12px;">Port:</label><input type="number" id="blenderPort" class="blender-port-input" value="8889"></div>
+                    <button class="blender-btn" onclick="checkBlenderConnection()">Check Connection</button>
+                    <button class="blender-btn" onclick="toggleAutoCheck()" id="autoCheckBtn">Auto Check: OFF</button>
+                </div>
+                <div class="blender-status disconnected" id="blenderStatus"><span id="blenderStatusText">🔴 Not connected to Blender</span></div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="equipment-panel">
+                <div class="equipment-header">
+                    <h3 id="panelTitle">Character Equipment</h3>
+                    <div class="equipment-controls">
+                        <div class="gender-buttons">
+                            <div class="gender-btn male active" onclick="selectGender('male')">♂ Male</div>
+                            <div class="gender-btn female" onclick="selectGender('female')">♀ Female</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kit Categories (shown in kit mode) -->
+                <div class="kit-categories" id="kitCategories">
+                    <div class="kit-category-grid" id="kitCategoryGrid">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Equipment Grid (shown in item mode) -->
+                <div class="equipment-grid" id="equipmentGrid">
+                    <div class="equip-slot" id="slot-head" data-category="Head"><div class="slot-name">Head</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Head')">&times;</div></div>
+                    <div class="equip-slot" id="slot-cape" data-category="Cape"><div class="slot-name">Cape</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Cape')">&times;</div></div>
+                    <div class="equip-slot" id="slot-amulet" data-category="Amulet"><div class="slot-name">Amulet</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Amulet')">&times;</div></div>
+                    <div class="equip-slot" id="slot-weapon" data-category="Weapon"><div class="slot-name">Weapon</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Weapon')">&times;</div></div>
+                    <div class="equip-slot" id="slot-torso" data-category="Torso"><div class="slot-name">Torso</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Torso')">&times;</div></div>
+                    <div class="equip-slot" id="slot-shield" data-category="Shield"><div class="slot-name">Shield</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Shield')">&times;</div></div>
+                    <div class="equip-slot" id="slot-legs" data-category="Legs"><div class="slot-name">Legs</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Legs')">&times;</div></div>
+                    <div class="equip-slot" id="slot-hands" data-category="Hands"><div class="slot-name">Hands</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Hands')">&times;</div></div>
+                    <div class="equip-slot" id="slot-boots" data-category="Boots"><div class="slot-name">Boots</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Boots')">&times;</div></div>
+                </div>
+                
+                <!-- Equipped Kits List -->
+                <div class="kits-list-container" id="kitsListContainer">
+                    <h4>Equipped Kits</h4>
+                    <ul class="kits-list" id="kitsList"></ul>
+                </div>
+
+                <button class="send-set-btn" id="sendSetBtn" onclick="sendEquippedSetToBlender()" disabled>📤 Send Set to Blender</button>
+            </div>
+
+            <div class="content">
+                <div class="results-header">
+                    <div><h3 id="resultsTitle">Select an equipment slot to begin</h3><span id="resultsCount"></span></div>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+                <div class="items-grid" id="itemsGrid"><div class="no-results">Select a slot on the left to see items.</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentCategory = null, currentGender = 'male', currentPage = 1, currentQuery = '';
+        let blenderConnected = false, autoCheckBlender = false, autoCheckInterval = null;
+        let searchMode = 'items'; // 'items' or 'kits'
+        let currentKitBodyPart = null;
+        
+        let equippedItems = {
+            Head: [], Cape: [], Amulet: [], Ammo: [], Weapon: [], Torso: [], 
+            Shield: [], Legs: [], Hands: [], Boots: []
+        };
+        let equippedKits = {}; // keyed by bodyPartName
+
+        async function init() {
+            setupSlotListeners();
+            await checkBlenderConnection();
+            await loadKitCategories();
+        }
+
+        function setupSlotListeners() {
+            document.querySelectorAll('.equip-slot').forEach(slot => {
+                slot.addEventListener('click', () => selectCategory(slot.dataset.category));
+            });
+        }
+        
+        function selectGender(gender) {
+            currentGender = gender;
+            document.querySelectorAll('.gender-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.gender-btn.${gender}`).classList.add('active');
+            
+            if (searchMode === 'items' && currentCategory) {
+                loadItems(currentCategory, 1);
+            } else if (searchMode === 'kits' && currentKitBodyPart) {
+                loadKits(currentKitBodyPart, 1);
+            }
+        }
+
+        async function loadKitCategories() {
+            try {
+                const response = await fetch('/api/kit-categories');
+                const categories = await response.json();
+                
+                const grid = document.getElementById('kitCategoryGrid');
+                grid.innerHTML = categories.map(cat => `
+                    <div class="kit-category-btn" onclick="selectKitCategory('${cat.name}')">
+                        <div class="kit-category-name">${cat.name}</div>
+                        <div class="kit-category-count">
+                            Total: ${cat.count}<br>
+                            ♂ ${cat.maleCount} ♀ ${cat.femaleCount}
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading kit categories:', error);
+            }
+        }
+
+        async function selectKitCategory(bodyPart) {
+            currentKitBodyPart = bodyPart;
+            currentPage = 1;
+            await clearSearch(true);
+            
+            document.querySelectorAll('.kit-category-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.kit-category-btn').classList.add('active');
+            
+            await loadKits(bodyPart, 1);
+        }
+
+        function setSearchMode(mode) {
+            if (searchMode === mode) return;
+            searchMode = mode;
+            
+            document.getElementById('mode-items').classList.toggle('active', mode === 'items');
+            document.getElementById('mode-kits').classList.toggle('active', mode === 'kits');
+            
+            document.getElementById('itemsGrid').innerHTML = '';
+            document.getElementById('pagination').innerHTML = '';
+            document.getElementById('resultsCount').textContent = '';
+            clearSearch(true);
+            
+            const equipmentGrid = document.getElementById('equipmentGrid');
+            const kitCategories = document.getElementById('kitCategories');
+            const kitsListContainer = document.getElementById('kitsListContainer');
+            const resultsTitle = document.getElementById('resultsTitle');
+            const searchInput = document.getElementById('searchInput');
+            const panelTitle = document.getElementById('panelTitle');
+
+            if (mode === 'kits') {
+                equipmentGrid.style.display = 'none';
+                kitCategories.classList.add('show');
+                kitsListContainer.classList.add('show');
+                panelTitle.textContent = 'Character Kits';
+                currentCategory = null;
+                document.querySelectorAll('.equip-slot').forEach(s => s.classList.remove('active'));
+                resultsTitle.textContent = 'Select a body part to browse kits';
+                searchInput.disabled = true;
+                searchInput.placeholder = 'Kit search not available yet';
+                updateKitsListUI();
+            } else {
+                equipmentGrid.style.display = 'grid';
+                kitCategories.classList.remove('show');
+                kitsListContainer.classList.remove('show');
+                panelTitle.textContent = 'Character Equipment';
+                currentKitBodyPart = null;
+                document.querySelectorAll('.kit-category-btn').forEach(btn => btn.classList.remove('active'));
+                resultsTitle.textContent = 'Select an equipment slot to begin';
+                searchInput.disabled = false;
+                searchInput.placeholder = 'Search for items...';
+                document.getElementById('itemsGrid').innerHTML = '<div class="no-results">Select a slot on the left to see items.</div>';
+            }
+        }
+
+        // Blender Integration
+        async function checkBlenderConnection() {
+            const port = document.getElementById('blenderPort').value;
+            const statusElement = document.getElementById('blenderStatus'), statusText = document.getElementById('blenderStatusText');
+            const sendBtn = document.getElementById('sendSetBtn');
+            try {
+                const response = await fetch(`/api/blender-status/${port}`);
+                const data = await response.json();
+                if (data.connected) {
+                    blenderConnected = true;
+                    statusElement.className = 'blender-status connected';
+                    statusText.textContent = `🟢 Connected on port ${data.port}`;
+                    sendBtn.disabled = false;
+                } else {
+                    blenderConnected = false;
+                    statusElement.className = 'blender-status disconnected';
+                    statusText.textContent = `🔴 Not connected on port ${port}`;
+                    sendBtn.disabled = true;
+                }
+            } catch (error) {
+                blenderConnected = false;
+                statusElement.className = 'blender-status disconnected';
+                statusText.textContent = `🔴 Connection error`;
+                sendBtn.disabled = true;
+            }
+        }
+        
+        function toggleAutoCheck() {
+            autoCheckBlender = !autoCheckBlender;
+            const btn = document.getElementById('autoCheckBtn');
+            if (autoCheckBlender) {
+                btn.textContent = 'Auto Check: ON'; btn.style.background = '#48bb78';
+                autoCheckInterval = setInterval(checkBlenderConnection, 5000);
+            } else {
+                btn.textContent = 'Auto Check: OFF'; btn.style.background = '#805ad5';
+                if(autoCheckInterval) clearInterval(autoCheckInterval);
+            }
+        }
+        
+        async function sendItemToBlender(itemId, modelType) {
+            if (!blenderConnected) return;
+            const port = document.getElementById('blenderPort').value;
+            try {
+                await fetch(`/api/send-to-blender/${itemId}/${modelType}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ blenderPort: parseInt(port) })
+                });
+            } catch (error) { console.error(`Error sending item ${itemId}:`, error); }
+        }
+
+        async function sendKitToBlender(kitId) {
+            if (!blenderConnected) return;
+            const port = document.getElementById('blenderPort').value;
+            try {
+                const response = await fetch(`/api/send-kit-to-blender/${kitId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ blenderPort: parseInt(port) })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    console.log(`Kit ${kitId} sent to Blender`);
+                } else {
+                    console.error('Failed to send kit:', result.error);
+                }
+            } catch (error) { 
+                console.error(`Error sending kit ${kitId}:`, error); 
+            }
+        }
+        
+        async function sendEquippedSetToBlender() {
+            const sendBtn = document.getElementById('sendSetBtn');
+            sendBtn.textContent = 'Sending...'; sendBtn.disabled = true;
+
+            let totalSent = 0;
+            
+            // Send equipped items
+            const itemsToSend = Object.values(equippedItems).flat();
+            for (const item of itemsToSend) {
+                const modelType = item.hasFemale && currentGender === 'female' ? 'female' : 'male';
+                await sendItemToBlender(item.id, modelType);
+                totalSent++;
+            }
+            
+            // Send equipped kits
+            const kitsToSend = Object.values(equippedKits);
+            for (const kit of kitsToSend) {
+                await sendKitToBlender(kit.id);
+                totalSent++;
+            }
+
+            setTimeout(() => {
+                if (totalSent > 0) {
+                    alert(`✅ Sent ${totalSent} item(s)/kit(s) to Blender!`);
+                } else {
+                    alert("No items or kits equipped!");
+                }
+                sendBtn.textContent = '📤 Send Set to Blender';
+                checkBlenderConnection();
+            }, 500);
+        }
+
+        // Data Loading & Display
+        async function selectCategory(categoryName) {
+            currentCategory = categoryName; currentPage = 1;
+            await clearSearch(true);
+            document.querySelectorAll('.equip-slot').forEach(s => s.classList.remove('active'));
+            document.querySelector(`[data-category="${categoryName}"]`).classList.add('active');
+            await loadItems(categoryName, 1);
+        }
+        
+        async function loadItems(category, page) {
+            if (!category) return;
+            document.getElementById('itemsGrid').innerHTML = '<div class="loading">Loading items...</div>';
+            let url = currentQuery 
+                ? `/api/search?query=${encodeURIComponent(currentQuery)}&category=${category}&page=${page}&gender=${currentGender}`
+                : `/api/category/${category}?page=${page}&gender=${currentGender}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                document.getElementById('resultsTitle').textContent = currentQuery ? `Results for "${currentQuery}" in ${category}` : `Showing items for: ${category}`;
+                document.getElementById('resultsCount').textContent = `${data.total} items found`;
+                renderItems(data.items);
+                renderPagination(data, category);
+            } catch (error) {
+                document.getElementById('itemsGrid').innerHTML = '<div class="no-results">Error loading items</div>';
+            }
+        }
+
+        async function loadKits(bodyPart, page) {
+            if (!bodyPart) return;
+            currentPage = page;
+            document.getElementById('itemsGrid').innerHTML = '<div class="loading">Loading kits...</div>';
+            const url = `/api/kits/${bodyPart}?page=${page}&gender=${currentGender}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                document.getElementById('resultsTitle').textContent = `Showing ${currentGender} ${bodyPart} kits`;
+                document.getElementById('resultsCount').textContent = `${data.total} kits found`;
+                renderKits(data.items);
+                renderPagination(data, bodyPart);
+            } catch (error) {
+                document.getElementById('itemsGrid').innerHTML = '<div class="no-results">Error loading kits</div>';
+            }
+        }
+
+        function renderItems(items) {
+            const grid = document.getElementById('itemsGrid');
+            if (items.length === 0) {
+                grid.innerHTML = '<div class="no-results">No items found.</div>'; return;
+            }
+            grid.innerHTML = items.map(item => `
+                <div class="item-card" onclick='equipItem(${JSON.stringify(item)})'>
+                    <div class="item-header">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-id">#${item.id}</div>
+                    </div>
+                    <div class="item-details">${item.examine || 'No description'}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderKits(kits) {
+            const grid = document.getElementById('itemsGrid');
+            if (kits.length === 0) {
+                grid.innerHTML = '<div class="no-results">No kits found for this gender.</div>'; return;
+            }
+            grid.innerHTML = kits.map(kit => `
+                <div class="item-card" onclick='equipKit(${JSON.stringify(kit)})'>
+                    <div class="item-header">
+                        <div class="item-name">${kit.name}<span class="kit-badge">KIT</span></div>
+                        <div class="item-id">#${kit.id}</div>
+                    </div>
+                    <div class="item-details">
+                        ${kit.bodyPartName} • ${kit.gender} • ${kit.models.length} model(s)
+                        ${kit.hasRecolors ? ' • Has colors' : ''}
+                    </div>
+                    <div class="item-footer">
+                        <button class="send-kit-btn" onclick="event.stopPropagation(); sendKitToBlender(${kit.id})">Send to Blender</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderPagination(data, category) {
+            const pagination = document.getElementById('pagination');
+            if (data.totalPages <= 1) { pagination.innerHTML = ''; return; }
+            let html = '';
+            if (data.page > 1) html += `<button class="page-btn" onclick="changePage(${data.page - 1}, '${category}')">Prev</button>`;
+            html += `<span>Page ${data.page} of ${data.totalPages}</span>`;
+            if (data.page < data.totalPages) html += `<button class="page-btn" onclick="changePage(${data.page + 1}, '${category}')">Next</button>`;
+            pagination.innerHTML = html;
+        }
+
+        async function changePage(page, category) {
+            currentPage = page;
+            if (searchMode === 'kits') {
+                await loadKits(category, page);
+            } else {
+                await loadItems(category, page);
+            }
+        }
+
+        // Search
+        async function performSearch() {
+            if (searchMode === 'kits') return;
+            currentQuery = document.getElementById('searchInput').value.trim();
+            currentPage = 1;
+            updateSearchTag();
+            if (!currentQuery) { await clearSearch(); return; }
+            if (!currentCategory) { alert("Please select an equipment slot before searching."); return; }
+            await loadItems(currentCategory, 1);
+        }
+        document.getElementById('searchInput').addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
+        
+        async function clearSearch(silent = false) {
+            currentQuery = '';
+            if (!silent) document.getElementById('searchInput').value = '';
+            updateSearchTag();
+            if (currentCategory) await loadItems(currentCategory, 1);
+        }
+
+        function updateSearchTag(){
+            const tagContainer = document.getElementById('search-tag-container');
+            if (currentQuery) {
+                tagContainer.innerHTML = `<div class="search-tag"><span>${currentQuery}</span><button onclick="clearSearch()">&times;</button></div>`;
+                tagContainer.style.display = 'block';
+            } else {
+                tagContainer.style.display = 'none';
+            }
+        }
+
+        // Equip Logic
+        function equipItem(item) {
+            let targetCategory = currentCategory;
+            if (!targetCategory) return;
+            if(targetCategory === '2H Weapons') targetCategory = 'Weapon';
+
+            if (item.is2H) {
+                if (targetCategory === 'Weapon') unequipSlot('Shield', true);
+                if (targetCategory === 'Shield') unequipSlot('Weapon', true);
+            }
+            const equippedWeapon = equippedItems['Weapon'].slice(-1)[0];
+            if (equippedWeapon && equippedWeapon.is2H && targetCategory === 'Shield') unequipSlot('Weapon', true);
+            
+            equippedItems[targetCategory] = [item];
+            updateAllSlotsUI();
+        }
+        
+        function unequipSlot(category, silent = false) {
+            equippedItems[category] = [];
+            if (!silent) updateAllSlotsUI();
+        }
+
+        function equipKit(kit) {
+            equippedKits[kit.bodyPartName] = kit;
+            updateKitsListUI();
+        }
+        
+        function unequipKit(bodyPartName) {
+            delete equippedKits[bodyPartName];
+            updateKitsListUI();
+        }
+
+        // UI Updates
+        function updateAllSlotsUI() {
+            Object.keys(equippedItems).forEach(category => updateSlotUI(category));
+        }
+        
+        function updateSlotUI(category) {
+            const slotElement = document.querySelector(`[data-category="${category}"]`);
+            if(!slotElement) return;
+            const items = equippedItems[category];
+            const lastItem = items.length > 0 ? items[items.length - 1] : null;
+            if (lastItem) {
+                slotElement.style.backgroundImage = `url('https://chisel.weirdgloop.org/static/img/osrs-dii/${lastItem.id}.png')`;
+                slotElement.classList.add('equipped');
+            } else {
+                slotElement.style.backgroundImage = 'none';
+                slotElement.classList.remove('equipped');
+            }
+        }
+        
+        function updateKitsListUI() {
+            const kitsList = document.getElementById('kitsList');
+            const kitsArray = Object.values(equippedKits);
+
+            if (kitsArray.length === 0) {
+                kitsList.innerHTML = '<li style="color: #718096; font-style: italic;">No kits equipped</li>';
+                return;
+            }
+            
+            kitsList.innerHTML = '';
+            kitsArray.forEach(kit => {
+                const li = document.createElement('li');
+                li.className = 'kit-item';
+                li.innerHTML = `
+                    <span class="kit-name">${kit.name}</span>
+                    <span>${kit.bodyPartName}</span>
+                    <button class="remove-kit-btn" onclick="unequipKit('${kit.bodyPartName}')">&times;</button>
+                `;
+                kitsList.appendChild(li);
+            });
+        }
+        
+        init();
+    </script>
+</body>
+</html>
