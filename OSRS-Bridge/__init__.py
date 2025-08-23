@@ -1,5 +1,5 @@
 bl_info = {
-    "name": "RuneScape Cache Explorer Bridge",
+    "name": "OSRS-Bridge",
     "author": "Psyda",
     "version": (1, 1, 0),
     "blender": (3, 5, 0),
