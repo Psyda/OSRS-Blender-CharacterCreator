@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RuneScape Outfit Viewer - Standalone</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Left Panel: Equipment -->
+        <div class="equipment-panel">
+            <div class="panel-header">
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="mode-gear-btn" onclick="setMode('gear')">Gear</button>
+                    <button class="mode-btn" id="mode-character-btn" onclick="setMode('character')">Character</button>
+                </div>
+                <div class="gender-buttons">
+                    <div class="gender-btn male active" onclick="selectGender('male')">♂ Male</div>
+                    <div class="gender-btn female" onclick="selectGender('female')">♀ Female</div>
+                </div>
+            </div>
+
+            <!-- Cache Status -->
+            <div class="cache-status" id="cacheStatus">
+                <div id="cacheLoadingStatus">🔄 Loading cache...</div>
+            </div>
+
+            <!-- Gear View -->
+            <div class="equipment-grid" id="equipmentGrid">
+                <div class="equip-slot" id="slot-head" data-category="Head"><div class="slot-name">Head</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Head')">&times;</div></div>
+                <div class="equip-slot" id="slot-cape" data-category="Cape"><div class="slot-name">Cape</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Cape')">&times;</div></div>
+                <div class="equip-slot" id="slot-amulet" data-category="Amulet"><div class="slot-name">Amulet</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Amulet')">&times;</div></div>
+                <div class="equip-slot" id="slot-weapon" data-category="Weapon"><div class="slot-name">Weapon</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Weapon')">&times;</div></div>
+                <div class="equip-slot" id="slot-torso" data-category="Torso"><div class="slot-name">Torso</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Torso')">&times;</div></div>
+                <div class="equip-slot" id="slot-shield" data-category="Shield"><div class="slot-name">Shield</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Shield')">&times;</div></div>
+                <div class="equip-slot" id="slot-legs" data-category="Legs"><div class="slot-name">Legs</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Legs')">&times;</div></div>
+                <div class="equip-slot" id="slot-hands" data-category="Hands"><div class="slot-name">Hands</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Hands')">&times;</div></div>
+                <div class="equip-slot" id="slot-boots" data-category="Boots"><div class="slot-name">Boots</div><div class="clear-slot-btn" onclick="event.stopPropagation(); unequipSlot('Boots')">&times;</div></div>
+            </div>
+
+            <!-- Character (Kits) View -->
+            <div class="kit-category-grid hidden" id="kitCategoryGrid">
+                <!-- Populated by JS -->
+            </div>
+            
+            <div class="bottom-controls">
+                <!-- Player Colors Section -->
+                <div class="control-section hidden" id="playerColorsSection">
+                    <h3>Player Colors</h3>
+                    <div class="color-picker-grid">
+                        <div class="color-picker-item">
+                            <label for="skinColor">Skin:</label>
+                            <input type="color" id="skinColor" value="#d6ac87" onchange="updatePlayerColor('skin', this.value)">
+                            <button class="reset-color-btn" onclick="resetPlayerColorUI('skin')" title="Reset to default">↻</button>
+                        </div>
+                        <div class="color-picker-item">
+                            <label for="hairMainColor">Hair Main:</label>
+                            <input type="color" id="hairMainColor" value="#5c4920" onchange="updatePlayerColor('hairMain', this.value)">
+                            <button class="reset-color-btn" onclick="resetPlayerColorUI('hairMain')" title="Reset to default">↻</button>
+                        </div>
+                        <div class="color-picker-item">
+                            <label for="hairSecondColor">Hair Secondary:</label>
+                            <input type="color" id="hairSecondColor" value="#75572F" onchange="updatePlayerColor('hairSecond', this.value)">
+                            <button class="reset-color-btn" onclick="resetPlayerColorUI('hairSecond')" title="Reset to default">↻</button>
+                        </div>
+                        <div class="color-picker-item">
+                            <label for="shirtColor">Shirt:</label>
+                            <input type="color" id="shirtColor" value="#9e8f49" onchange="updatePlayerColor('shirt', this.value)">
+                            <button class="reset-color-btn" onclick="resetPlayerColorUI('shirt')" title="Reset to default">↻</button>
+                        </div>
+                        <div class="color-picker-item">
+                            <label for="pantsColor">Pants:</label>
+                            <input type="color" id="pantsColor" value="#2a7948" onchange="updatePlayerColor('pants', this.value)">
+                            <button class="reset-color-btn" onclick="resetPlayerColorUI('pants')" title="Reset to default">↻</button>
+                        </div>
+                        <div class="color-picker-item">
+                            <label for="bootsColor">Boots:</label>
+                            <input type="color" id="bootsColor" value="#54352A" onchange="updatePlayerColor('boots', this.value)">
+                            <button class="reset-color-btn" onclick="resetPlayerColorUI('boots')" title="Reset to default">↻</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Presets Section -->
+                <div class="control-section">
+                    <h3>Presets</h3>
+                    <div class="preset-input-group">
+                        <select id="presetList"></select>
+                    </div>
+                    <div class="preset-input-group">
+                        <input type="text" id="presetName" placeholder="New Preset Name...">
+                        <button class="mode-btn" onclick="savePreset()">Save</button>
+                    </div>
+                    <div class="preset-buttons">
+                        <button class="mode-btn" onclick="loadPreset()">Load</button>
+                        <button class="mode-btn" style="background-color: var(--error-color);" onclick="deletePreset()">Delete</button>
+                    </div>
+                </div>
+
+                <!-- Blender Controls -->
+                <div class="control-section">
+					<div class="control-section">
+						<button class="mode-btn" onclick="showAboutPopup()" style="width: 100%; margin-bottom: 10px;">About Psyda</button>
+					</div>
+                    <h3>Blender Export</h3>
+                    <div id="blenderStatus" class="blender-status disconnected">🔴 Blender Disconnected</div>
+                    <div class="blender-port-group">
+                        <label for="blenderPort">Port:</label>
+                        <input type="number" id="blenderPort" value="8889">
+                        <button class="mode-btn" onclick="checkBlenderConnection()">Connect</button>
+                    </div>
+                    <button id="sendSetBtn" class="send-set-btn" onclick="sendEquippedSetToBlender()" disabled>📤 Send to Blender</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Panel: 3D Viewer -->
+        <div class="viewer-panel">
+            <div id="viewerContainer"></div>
+            <div class="viewer-controls">
+                <button class="viewer-btn" onclick="viewer3D.toggleWireframe()">Wireframe</button>
+                <button class="viewer-btn" onclick="clearAllEquipment()">Clear All</button>
+            </div>
+        </div>
+
+        <!-- Right Panel: Item Browser -->
+        <div class="browser-panel">
+            <div class="browser-header">
+                <h3 id="resultsTitle">Select a gear slot</h3>
+                <input type="text" class="search-input" id="searchInput" placeholder="Search..." disabled>
+                <div class="results-info">
+                    <span id="resultsCount"></span>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            </div>
+            <div class="items-grid" id="itemsGrid">
+                <div class="no-results">Select a slot on the left to see items.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="CharacterViewer.js"></script>
+    <script>
+        // --- GLOBAL STATE ---
+        let viewer3D = null;
+        let masterIndex = null;
+        let fileCache = new Map();
+        let mode = 'gear'; // 'gear' or 'character'
+        let currentCategory = null; // For gear
+        let currentKitCategory = null; // For character kits
+        let currentPage = 1;
+        let currentQuery = '';
+        let blenderConnected = false;
+        
+        // Configuration
+        const DATA_PATH = './cache/';
+        const ITEMS_PER_PAGE = 50;
+        
+        // --- FILE LOADING SYSTEM (same as CharacterViewer) ---
+        
+        function decodeData(encodedData) {
+            try {
+                // Check if data is base64 encoded
+                if (typeof encodedData === 'string' && !encodedData.startsWith('{')) {
+                    const decoded = atob(encodedData);
+                    return JSON.parse(decoded);
+                }
+                return typeof encodedData === 'string' ? JSON.parse(encodedData) : encodedData;
+            } catch (e) {
+                console.error('Error decoding data:', e);
+                return null;
+            }
+        }
+
+        async function loadFile(filepath) {
+            // Check cache first
+            if (fileCache.has(filepath)) {
+                return fileCache.get(filepath);
+            }
+            
+            try {
+                const response = await fetch(DATA_PATH + filepath);
+                if (!response.ok) throw new Error(`Failed to load ${filepath}: ${response.status}`);
+                
+                const rawData = await response.text();
+                const data = decodeData(rawData);
+                
+                // Cache the decoded data
+                fileCache.set(filepath, data);
+                return data;
+            } catch (error) {
+                console.error(`Error loading ${filepath}:`, error);
+                throw error;
+            }
+        }
+
+        async function loadMasterIndex() {
+            if (!masterIndex) {
+                masterIndex = await loadFile('index.json');
+            }
+            return masterIndex;
+        }
+
+        // --- PLAYER COLOR SYSTEM ---
+
+        function updatePlayerColor(colorType, hexValue) {
+            if (viewer3D) {
+                viewer3D.setPlayerColor(colorType, hexValue);
+            }
+        }
+        
+        function resetPlayerColorUI(colorType) {
+            if (viewer3D) {
+                const defaultHex = viewer3D.resetPlayerColor(colorType);
+                const pickerId = getColorPickerId(colorType);
+                document.getElementById(pickerId).value = defaultHex;
+            }
+        }
+        
+        function resetColorPickersUI() {
+            if (viewer3D) {
+                for (const colorType in viewer3D.defaultPlayerColorsHex) {
+                    const pickerId = getColorPickerId(colorType);
+                    document.getElementById(pickerId).value = viewer3D.defaultPlayerColorsHex[colorType];
+                }
+            }
+        }
+        
+        function getColorPickerId(colorType) {
+            const mapping = {
+                skin: 'skinColor',
+                hairMain: 'hairMainColor',
+                hairSecond: 'hairSecondColor', 
+                shirt: 'shirtColor',
+                pants: 'pantsColor',
+                boots: 'bootsColor'
+            };
+            return mapping[colorType];
+        }
+        
+        // --- INITIALIZATION ---
+        window.addEventListener('load', init);
+
+        async function init() {
+            try {
+                updateCacheStatus('🔄 Loading master index...');
+                
+                // Load master index first
+                await loadMasterIndex();
+                
+                // Initialize character viewer. It will handle its own default colors.
+                viewer3D = new CharacterViewer(document.getElementById('viewerContainer'), DATA_PATH);
+                
+                try {
+                    // Load kit lookup from master index if available, or from separate file
+                    let kitLookupData = {};
+                    try {
+                        kitLookupData = await loadFile('../kit_lookup.json');
+                    } catch (e) {
+                        console.warn('Kit lookup not found, using empty lookup');
+                    }
+                    
+                    viewer3D.setKitLookup(kitLookupData);
+                    await viewer3D.equipDefaultKits();
+                } catch (error) {
+                    console.error("Failed to load kit lookup table. Gender swapping/defaults may not work.", error);
+                }
+
+                setupEventListeners();
+                await loadKitCategories();
+                setMode('gear');
+                checkBlenderConnection();
+                updatePresetList();
+                
+                updateCacheStatus('✅ Cache loaded successfully!');
+                
+                // Hide cache status after a delay
+                setTimeout(() => {
+                    document.getElementById('cacheStatus').style.display = 'none';
+                }, 2000);
+                
+            } catch (error) {
+                updateCacheStatus(`❌ Error loading cache: ${error.message}`, true);
+                console.error('Initialization error:', error);
+            }
+        }
+
+        function updateCacheStatus(message, isError = false) {
+            const statusEl = document.getElementById('cacheLoadingStatus');
+            statusEl.textContent = message;
+            statusEl.className = isError ? 'error' : '';
+        }
+
+        function setupEventListeners() {
+            document.querySelectorAll('.equip-slot').forEach(slot => {
+                slot.addEventListener('click', () => selectCategory(slot.dataset.category));
+            });
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
+        }
+        
+        // --- MODE SWITCHING ---
+        function setMode(newMode) {
+            mode = newMode;
+            currentPage = 1;
+            currentQuery = '';
+            document.getElementById('searchInput').value = '';
+
+            document.getElementById('mode-gear-btn').classList.toggle('active', mode === 'gear');
+            document.getElementById('mode-character-btn').classList.toggle('active', mode === 'character');
+
+            document.getElementById('equipmentGrid').classList.toggle('hidden', mode !== 'gear');
+            document.getElementById('kitCategoryGrid').classList.toggle('hidden', mode !== 'character');
+            
+			document.getElementById('playerColorsSection').classList.toggle('hidden', newMode !== 'character');
+			
+            document.getElementById('itemsGrid').innerHTML = '';
+            document.getElementById('pagination').innerHTML = '';
+            document.getElementById('resultsCount').textContent = '';
+            const searchInput = document.getElementById('searchInput');
+            
+            if (mode === 'gear') {
+                document.getElementById('resultsTitle').textContent = 'Select a gear slot';
+                searchInput.placeholder = 'Search for gear...';
+                searchInput.disabled = true;
+                currentKitCategory = null;
+                document.querySelectorAll('.kit-category-btn').forEach(b => b.classList.remove('active'));
+            } else {
+                document.getElementById('resultsTitle').textContent = 'Select a character part';
+                searchInput.placeholder = 'Search for parts...';
+                searchInput.disabled = true;
+                currentCategory = null;
+                document.querySelectorAll('.equip-slot').forEach(s => s.classList.remove('active'));
+            }
+        }
+
+        // --- GENDER AND CATEGORY SELECTION ---
+        async function selectGender(gender) {
+            if (viewer3D.gender === gender) return;
+
+            document.querySelectorAll('.gender-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.gender-btn.${gender}`).classList.add('active');
+
+            await viewer3D.setGender(gender); // Await the async gender change
+
+            if (mode === 'gear' && currentCategory) loadItems(currentCategory, 1);
+            if (mode === 'character' && currentKitCategory) loadKits(currentKitCategory, 1);
+        }
+
+        function selectCategory(categoryName) { // For Gear
+            currentCategory = categoryName;
+            currentPage = 1;
+            currentQuery = '';
+            
+            document.querySelectorAll('.equip-slot').forEach(s => s.classList.remove('active'));
+            document.querySelector(`[data-category="${categoryName}"]`).classList.add('active');
+            
+            const searchInput = document.getElementById('searchInput');
+            searchInput.disabled = false;
+            searchInput.value = '';
+            searchInput.placeholder = `Search in ${categoryName}...`;
+            
+            loadItems(categoryName, 1);
+        }
+
+        function selectKitCategory(categoryName) { // For Character
+            currentKitCategory = categoryName;
+            currentPage = 1;
+            
+            document.querySelectorAll('.kit-category-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            loadKits(categoryName, 1);
+        }
+
+        // --- DATA LOADING & DISPLAY ---
+        async function loadData(url, renderer, category) {
+            document.getElementById('itemsGrid').innerHTML = '<div class="loading">Loading...</div>';
+            try {
+                // This simulates the original API but uses master index data
+                let data;
+                
+                if (url.includes('/api/category/')) {
+                    // Handle category loading
+                    const categoryName = url.split('/api/category/')[1].split('?')[0];
+                    const searchParams = new URLSearchParams(url.split('?')[1] || '');
+                    const page = parseInt(searchParams.get('page') || '1');
+                    const gender = searchParams.get('gender') || 'all';
+                    
+                    let items = masterIndex.categories[categoryName] || [];
+                    items = filterItemsByGender(items, gender);
+                    
+                    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+                    const endIndex = startIndex + ITEMS_PER_PAGE;
+                    const pageItems = items.slice(startIndex, endIndex);
+                    
+                    data = {
+                        category: categoryName,
+                        gender: gender,
+                        page: page,
+                        limit: ITEMS_PER_PAGE,
+                        total: items.length,
+                        totalPages: Math.ceil(items.length / ITEMS_PER_PAGE),
+                        items: pageItems
+                    };
+                    
+                } else if (url.includes('/api/search')) {
+                    // Handle search
+                    const searchParams = new URLSearchParams(url.split('?')[1]);
+                    const query = searchParams.get('query') || '';
+                    const categoryName = searchParams.get('category') || 'All';
+                    const page = parseInt(searchParams.get('page') || '1');
+                    const gender = searchParams.get('gender') || 'all';
+                    
+                    let items = [];
+                    if (/^\d+$/.test(query)) {
+                        // Search by ID
+                        const itemId = parseInt(query);
+                        const searchItem = masterIndex.searchIndex.find(item => item.id === itemId);
+                        if (searchItem) items = [searchItem];
+                    } else {
+                        // Search by name
+                        const lowerQuery = query.toLowerCase();
+                        const baseResults = masterIndex.searchIndex.filter(item => 
+                            item.name.includes(lowerQuery)
+                        );
+                        
+                        if (categoryName !== 'All') {
+                            const categoryItems = new Set(masterIndex.categories[categoryName].map(item => item.id));
+                            items = baseResults.filter(item => categoryItems.has(item.id));
+                        } else {
+                            items = baseResults;
+                        }
+                    }
+                    
+                    items = filterItemsByGender(items, gender);
+                    
+                    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+                    const endIndex = startIndex + ITEMS_PER_PAGE;
+                    const pageItems = items.slice(startIndex, endIndex);
+                    
+                    data = {
+                        query: query,
+                        category: categoryName,
+                        gender: gender,
+                        page: page,
+                        limit: ITEMS_PER_PAGE,
+                        total: items.length,
+                        totalPages: Math.ceil(items.length / ITEMS_PER_PAGE),
+                        items: pageItems
+                    };
+                    
+                } else if (url.includes('/api/kits/')) {
+                    // Handle kits
+                    const bodyPart = url.split('/api/kits/')[1].split('?')[0];
+                    const searchParams = new URLSearchParams(url.split('?')[1] || '');
+                    const page = parseInt(searchParams.get('page') || '1');
+                    const gender = searchParams.get('gender') || 'all';
+                    
+                    let kits = [];
+                    const allKits = masterIndex.kitCategories[bodyPart]?.all || [];
+                    
+                    if (gender === 'all') {
+                        kits = allKits;
+                    } else {
+                        kits = allKits.filter(kit => kit.gender === gender);
+                    }
+                    
+                    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+                    const endIndex = startIndex + ITEMS_PER_PAGE;
+                    const pageKits = kits.slice(startIndex, endIndex);
+                    
+                    data = {
+                        bodyPart: bodyPart,
+                        gender: gender,
+                        page: page,
+                        limit: ITEMS_PER_PAGE,
+                        total: kits.length,
+                        totalPages: Math.ceil(kits.length / ITEMS_PER_PAGE),
+                        items: pageKits
+                    };
+                }
+                
+                document.getElementById('resultsTitle').textContent = `Browsing: ${category}`;
+                document.getElementById('resultsCount').textContent = `${data.total} found`;
+                renderer(data.items);
+                renderPagination(data, category);
+            } catch (error) {
+                console.error(`Error loading data for ${category}:`, error);
+                document.getElementById('itemsGrid').innerHTML = `<div class="no-results">Error loading data.<br>Please check console for details.</div>`;
+            }
+        }
+        
+        async function loadItems(category, page) {
+            const url = currentQuery 
+                ? `/api/search?query=${encodeURIComponent(currentQuery)}&category=${category}&page=${page}&gender=${viewer3D.gender}`
+                : `/api/category/${category}?page=${page}&gender=${viewer3D.gender}`;
+            await loadData(url, renderItems, category);
+        }
+
+        async function loadKits(category, page) {
+            const url = `/api/kits/${category}?page=${page}&gender=${viewer3D.gender}`;
+            await loadData(url, renderKits, category);
+        }
+        
+        async function loadKitCategories() {
+            try {
+                // Simulate the original API response structure
+                const categories = Object.keys(masterIndex.kitCategories).map(name => ({
+                    name,
+                    count: masterIndex.kitCategories[name].all.length,
+                    maleCount: masterIndex.kitCategories[name].male?.length || 0,
+                    femaleCount: masterIndex.kitCategories[name].female?.length || 0
+                }));
+                
+                const grid = document.getElementById('kitCategoryGrid');
+                grid.innerHTML = categories.map(cat => `
+                    <div class="kit-category-btn" onclick="selectKitCategory('${cat.name}')">
+                        <div>${cat.name}</div>
+                        <small>${cat.count} total</small>
+                    </div>
+                `).join('');
+            } catch (error) { 
+                console.error('Error loading kit categories:', error); 
+            }
+        }
+
+        function renderItems(items) {
+            const grid = document.getElementById('itemsGrid');
+            if (items.length === 0) {
+                grid.innerHTML = '<div class="no-results">No items found.</div>';
+                return;
+            }
+            
+            grid.innerHTML = items.map((item, index) => `
+                <div class="item-card" data-item-index="${index}">
+                    <div class="item-name">${item.nameOriginal || item.name} (ID: ${item.id})</div>
+                    <div class="item-details">${getItemExamineText(item.id) || 'No description.'}</div>
+                </div>
+            `).join('');
+            
+            // Store items data globally for access by event handlers
+            window.currentItems = items;
+        }
+
+        function renderKits(kits) {
+            const grid = document.getElementById('itemsGrid');
+            if (kits.length === 0) {
+                grid.innerHTML = '<div class="no-results">No parts found.</div>';
+                return;
+            }
+            
+            grid.innerHTML = kits.map((kit, index) => `
+                <div class="item-card" data-kit-index="${index}">
+                    <div class="item-name">${kit.name} (ID: ${kit.id})</div>
+                    <div class="item-details">Gender: ${kit.gender}</div>
+                </div>
+            `).join('');
+            
+            // Store kits data globally for access by event handlers
+            window.currentKits = kits;
+        }
+
+        // Add event delegation for item and kit cards
+        document.addEventListener('click', (e) => {
+            const itemCard = e.target.closest('.item-card');
+            if (!itemCard) return;
+            
+            const itemIndex = itemCard.dataset.itemIndex;
+            const kitIndex = itemCard.dataset.kitIndex;
+            
+            if (itemIndex !== undefined && window.currentItems) {
+                const item = window.currentItems[parseInt(itemIndex)];
+                if (item) {
+                    equipItem(item);
+                }
+            } else if (kitIndex !== undefined && window.currentKits) {
+                const kit = window.currentKits[parseInt(kitIndex)];
+                if (kit) {
+                    equipKit(kit);
+                }
+            }
+        });
+
+        function renderPagination(data, category) {
+            const pagination = document.getElementById('pagination');
+            if (data.totalPages <= 1) { pagination.innerHTML = ''; return; }
+            let html = '';
+            if (data.page > 1) html += `<button class="page-btn" onclick="changePage(${data.page - 1}, '${category}')">&lt;</button>`;
+            html += `<span> Page ${data.page} of ${data.totalPages} </span>`;
+            if (data.page < data.totalPages) html += `<button class="page-btn" onclick="changePage(${data.page + 1}, '${category}')">&gt;</button>`;
+            pagination.innerHTML = html;
+        }
+
+        function changePage(page, category) {
+            currentPage = page;
+            if (mode === 'gear') loadItems(category, page);
+            else loadKits(category, page);
+        }
+
+        function performSearch() {
+            currentQuery = document.getElementById('searchInput').value.trim();
+            if (mode === 'gear' && currentCategory) loadItems(currentCategory, 1);
+        }
+
+        function filterItemsByGender(items, gender) {
+            if (gender === 'all') return items;
+            return items.filter(item => {
+                if (gender === 'male') return item.hasMale;
+                if (gender === 'female') return item.hasFemale;
+                return true;
+            });
+        }
+
+        function getItemExamineText(itemId) {
+            // This would need to be cached when loading items, for now return placeholder
+            return `Item ${itemId}`;
+        }
+
+        // --- EQUIPMENT LOGIC ---
+        async function equipItem(item) {
+            if (!currentCategory) return;
+            if (item.is2H) {
+                if (currentCategory === 'Weapon') unequipSlot('Shield', true);
+                if (currentCategory === 'Shield') unequipSlot('Weapon', true);
+            }
+            const equippedWeapon = viewer3D.equippedItems.get('Weapon');
+            if (equippedWeapon && equippedWeapon.is2H && currentCategory === 'Shield') {
+                unequipSlot('Weapon', true);
+            }
+            
+            // Load the full item data and equip it
+            try {
+                const fullItemData = await loadFile(`items/${item.id}.json`);
+                await viewer3D.equipItem(currentCategory, fullItemData);
+                updateSlotUI(currentCategory);
+            } catch (error) {
+                console.error(`Failed to equip item ${item.id}:`, error);
+            }
+        }
+        
+        async function equipKit(kit) {
+            try {
+                const fullKitData = await loadFile(`kits/${kit.id}.json`);
+                await viewer3D.equipKit(fullKitData.bodyPartName, fullKitData);
+            } catch (error) {
+                console.error(`Failed to equip kit ${kit.id}:`, error);
+            }
+        }
+
+        function unequipSlot(category, silent = false) {
+            viewer3D.unequip(category);
+            if (!silent) updateSlotUI(category);
+        }
+        
+        async function clearAllEquipment() {
+            // A full reset should revert to the default state, which is male.
+            // We can call selectGender which handles the character rebuild.
+            if (viewer3D.gender !== 'male') {
+                await selectGender('male');
+            }
+            // Then, perform a standard reset to ensure all items are gone and default kits are equipped.
+            await viewer3D.resetCharacter(); 
+            updateAllSlotsUI();
+            resetColorPickersUI();
+        }
+
+        function updateAllSlotsUI() {
+             const allSlots = document.querySelectorAll('.equip-slot');
+            allSlots.forEach(slot => {
+                const category = slot.dataset.category;
+                if (category) updateSlotUI(category);
+            });
+        }
+
+        function updateSlotUI(category) {
+            const slotElement = document.querySelector(`[data-category="${category}"]`);
+            if (!slotElement) return;
+            const item = viewer3D.equippedItems.get(category);
+            if (item) {
+                slotElement.style.backgroundImage = `url('https://chisel.weirdgloop.org/static/img/osrs-dii/${item.id}.png')`;
+                slotElement.classList.add('equipped');
+            } else {
+                slotElement.style.backgroundImage = 'none';
+                slotElement.classList.remove('equipped');
+            }
+        }
+
+        // --- PRESET MANAGEMENT ---
+        function getPresets() {
+            return JSON.parse(localStorage.getItem('rs_outfit_presets') || '{}');
+        }
+
+        function savePreset() {
+            const nameInput = document.getElementById('presetName');
+            const name = nameInput.value.trim();
+            if (!name) {
+                alert("Please enter a name for the preset.");
+                return;
+            }
+
+            const presets = getPresets();
+            
+            const equippedItemIds = {};
+            for(const [category, item] of viewer3D.equippedItems.entries()) {
+                equippedItemIds[category] = item.id;
+            }
+
+            const equippedKitIds = {};
+            for(const [category, kit] of viewer3D.equippedKits.entries()) {
+                equippedKitIds[category] = kit.id;
+            }
+
+            // Save current player colors by getting them from the viewer
+            const currentPlayerColors = {};
+            for (const [colorType, hslValue] of Object.entries(viewer3D.playerColors)) {
+                if (hslValue !== null) {
+                    currentPlayerColors[colorType] = {
+                        hsl: hslValue,
+                        hex: document.getElementById(getColorPickerId(colorType)).value
+                    };
+                }
+            }
+
+            presets[name] = {
+                gender: viewer3D.gender,
+                items: equippedItemIds,
+                kits: equippedKitIds,
+                playerColors: currentPlayerColors
+            };
+
+            localStorage.setItem('rs_outfit_presets', JSON.stringify(presets));
+            nameInput.value = '';
+            updatePresetList();
+            alert(`Preset "${name}" saved!`);
+        }
+
+        async function loadPreset() {
+            const presetList = document.getElementById('presetList');
+            const name = presetList.value;
+            if (!name) {
+                alert("Please select a preset to load.");
+                return;
+            }
+
+            const presets = getPresets();
+            const preset = presets[name];
+
+            if (!preset) {
+                alert("Could not find the selected preset.");
+                return;
+            }
+            
+            if (viewer3D.isBusy) {
+                console.warn("Viewer is busy, please wait for the current operation to complete.");
+                return;
+            }
+
+            await viewer3D.loadPreset(preset);
+            updateAllSlotsUI();
+            
+            // Sync UI with the new state
+            document.querySelectorAll('.gender-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.gender-btn.${viewer3D.gender}`).classList.add('active');
+            
+            if (preset.playerColors) {
+                for (const [colorType, colorData] of Object.entries(preset.playerColors)) {
+                    document.getElementById(getColorPickerId(colorType)).value = colorData.hex;
+                }
+            } else {
+                resetColorPickersUI();
+            }
+        }
+
+        async function fetchItemData(itemId) {
+            try {
+                // Search in the master index first
+                const item = masterIndex.searchIndex.find(item => item.id === itemId);
+                return item;
+            } catch (error) {
+                console.error(`Error fetching data for item ${itemId}:`, error);
+                return null;
+            }
+        }
+
+        function deletePreset() {
+            const presetList = document.getElementById('presetList');
+            const name = presetList.value;
+            if (!name) {
+                alert("Please select a preset to delete.");
+                return;
+            }
+
+            if (confirm(`Are you sure you want to delete the preset "${name}"?`)) {
+                const presets = getPresets();
+                delete presets[name];
+                localStorage.setItem('rs_outfit_presets', JSON.stringify(presets));
+                updatePresetList();
+            }
+        }
+
+        function updatePresetList() {
+            const presets = getPresets();
+            const presetList = document.getElementById('presetList');
+            presetList.innerHTML = '';
+
+            const names = Object.keys(presets);
+            if (names.length === 0) {
+                presetList.innerHTML = '<option value="">No presets saved</option>';
+            } else {
+                names.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    presetList.appendChild(option);
+                });
+            }
+        }
+
+        // --- BLENDER INTEGRATION ---
+        async function checkBlenderConnection() {
+            const port = document.getElementById('blenderPort').value;
+            const statusEl = document.getElementById('blenderStatus');
+            const sendBtn = document.getElementById('sendSetBtn');
+            try {
+                const response = await fetch(`http://localhost:${port}/status`, { method: 'GET', timeout: 25000 });
+                if (response.ok) {
+                    blenderConnected = true;
+                    statusEl.textContent = '🟢 Blender Connected';
+                    statusEl.className = 'blender-status connected';
+                    sendBtn.disabled = false;
+                } else {
+                    throw new Error('Blender not responding');
+                }
+            } catch (error) {
+                blenderConnected = false;
+                statusEl.textContent = '🔴 Blender Disconnected';
+                statusEl.className = 'blender-status disconnected';
+                sendBtn.disabled = true;
+            }
+        }
+
+        async function sendEquippedSetToBlender() {
+            if (!blenderConnected) {
+                alert("Not connected to Blender. Please check the connection and port.");
+                return;
+            }
+            const sendBtn = document.getElementById('sendSetBtn');
+            sendBtn.textContent = 'Sending...';
+            sendBtn.disabled = true;
+
+            const port = document.getElementById('blenderPort').value;
+            const totalSent = await viewer3D.sendToBlender(port);
+            
+            setTimeout(() => {
+                if (totalSent > 0) {
+                    console.log(`✅ Sent ${totalSent} item(s)/kit(s) to Blender!`);
+                } else {
+                    console.log("No items or kits were equipped to send.");
+                }
+                sendBtn.textContent = '📤 Send to Blender';
+                sendBtn.disabled = false;
+            }, 500);
+        }
+		
+		// Donation Plea ;-;
+		function showAboutPopup() {
+			if (window.donationPopup && window.donationPopup.isLoaded) {
+				window.donationPopup.showAboutPopup();
+			} else {
+				console.warn('Donation popup not loaded yet');
+			}
+		}
+    </script>
+	<script src="donation-popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+{
+  "name": "osrs-cache-explorer-standalone",
+  "version": "1.0.0",
+  "description": "Standalone OSRS cache explorer with no backend required",
+  "type": "module",
+  "main": "scripts/extract-cache.js",
+  "scripts": {
+    "extract": "node scripts/extract-cache.js",
+    "deploy": "node scripts/deploy.js",
+    "build": "npm run extract && npm run deploy",
+    "dev": "npm run build && npx serve public",
+    "serve": "npx serve public",
+    "test": "node scripts/test-data.js",
+    "clean": "rm -rf extracted_data/* public/extracted_data/*",
+    "validate": "node scripts/validate-data.js",
+    "stats": "node scripts/show-stats.js",
+    "lint": "eslint scripts/",
+    "format": "prettier --write scripts/ public/"
+  },
+  "keywords": [
+    "osrs",
+    "runescape",
+    "cache",
+    "3d",
+    "models",
+    "items",
+    "kits",
+    "standalone",
+    "client-side"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "dependencies": {
+    "osrscachereader": "^1.1.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "serve": "^14.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/osrs-cache-explorer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/osrs-cache-explorer/issues"
+  },
+  "homepage": "https://github.com/yourusername/osrs-cache-explorer#readme",
+  "config": {
+    "cache_path": "../../cache",
+    "output_dir": "./extracted_data",
+    "encode_data": true,
+    "chunk_size": 100,
+    "max_cache_size": 500
+  }
+}

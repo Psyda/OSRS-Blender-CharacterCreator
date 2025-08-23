@@ -32,8 +32,8 @@ Before you begin, ensure you have the following installed and set up:
 Follow these steps to get the server up and running on your local machine.
 
 1. **Clone the Repository**:  
-   git clone https://github.com/your-username/your-project-name.git  
-   cd your-project-name
+   git clone https://github.com/Psyda/OSRS-Blender-CharacterCreator.git  
+   cd OSRS-Blender-CharacterCreator
 
 2. Install Dependencies:  
    Navigate to the /server directory (or the project root, depending on your package.json location) and install the required Node.js packages.  
@@ -42,12 +42,14 @@ Follow these steps to get the server up and running on your local machine.
 3. Position the OSRS Cache:  
    Make sure your OSRS cache folder is located one directory above your project folder. For example:  
    /Development/  
-   |-- /cache/         \<-- OSRS cache files here  
-   |-- /osrs-blender-tool/  \<-- Your project folder here
+   |-- /cache/         \<-- OSRS cache files here with a valid xteas.json
+   |-- /OSRS-Blender-CharacterCreator/  \<-- Your project folder here
+   |-- /OSRS-Blender-CharacterCreator/runescape-cache-explorer  \<-- Your Cache Explorer Server folder here
+   |-- /OSRS-Blender-CharacterCreator/cache_explorer_bridge  \<-- Your Blender Addon Source code, This must be Zipped so that its like cache_explorer_bridge.zip/cache_explorer_bridge/__init__.py/ < It must have a Zip>Folder>Files layout for Blender to understand.
 
 4. Start the Server:  
    Run the following command from your project's root directory:  
-   node cache\_explorer\_backend.js
+   node /OSRS-Blender-CharacterCreator/runescape-cache-explorer.js
 
    If successful, you will see a confirmation message in your terminal:  
    Cache Explorer Server running on http://localhost:3001  
