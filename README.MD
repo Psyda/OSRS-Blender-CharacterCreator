@@ -1,89 +1,62 @@
-# **OSRS Cache & Blender Integration Tool**
+# Oldschool RuneScape Character Creator for Blender
 
-## **📜 Overview**
+**[☕ Support on Patreon](https://www.patreon.com/c/u5323457)** | **[🌐 Try the Web App](https://Psyda.github.io/OSRS-Blender-CharacterCreator/)**
 
-This project is a web-based tool designed to explore assets from the Old School RuneScape (OSRS) cache. It allows users to browse, search, and visualize in-game items and character kits (Identikits). The tool features a powerful integration with Blender, enabling users to send models directly from the cache explorer to a running Blender instance for easier access and use in 3D projects.
+A web-based character creator for Old School RuneScape that integrates directly with Blender. Browse items, character kits, and equipment with a clean interface, then export complete character builds to Blender with one click.
 
-The project consists of two main parts:
+## Quick Start
 
-1. A **Node.js backend server** that reads the OSRS cache files, processes the data, and serves it through a REST API.  
-2. A **web-based frontend** that provides a user-friendly interface for searching and selecting assets.
+1. **Install OSRS-Bridge Addon**: Download `OSRS-Bridge.zip` from [releases](https://github.com/Psyda/OSRS-Blender-CharacterCreator/releases) and install in Blender
+2. **Try the Web App**: Visit [https://Psyda.github.io/OSRS-Blender-CharacterCreator/](https://Psyda.github.io/OSRS-Blender-CharacterCreator/) to create characters
+3. **Connect**: Enable the OSRS-Bridge addon in Blender, then use the web app to send complete character builds to your scene
 
-## **✨ Features**
+## Addon Installation
 
-* **Item Explorer**: Browse all wearable items from the cache, organized by equipment slot.  
-* **Character Kit Explorer**: Browse character customization kits (hairstyles, body types, etc.) filtered by gender.  
-* **Advanced Search**: Search for items by name or ID.  
-* **Equipment Panel**: A visual, in-app panel to see how a set of equipped items looks.  
-* **Direct Blender Integration**: Send any item or character kit directly to Blender with a single click.  
-* **Debug Tools**: Inspect the raw model data for kits to verify assets before sending them to Blender.
+1. Download the latest `OSRS-Bridge.zip` from the [Releases](https://github.com/Psyda/OSRS-Blender-CharacterCreator/releases) page
+2. In Blender: Edit → Preferences → Add-ons → Install
+3. Select the downloaded zip file
+4. Enable "OSRS-Bridge" addon
+5. The addon will automatically listen for connections from the web app
 
-## **📋 Requirements**
+## Features
 
-Before you begin, ensure you have the following installed and set up:
+- **Item Browser**: Search and preview all wearable OSRS items by equipment slot
+- **Character Kits**: Browse hairstyles, body types, and character customization options
+- **Equipment Preview**: Visual panel showing your selected item set
+- **One-Click Export**: Send any combination of items/kits directly to Blender
+- **Live Integration**: Real-time connection between web app and Blender
 
-* **Node.js**: Version 18.x or higher is recommended.  
-* **OSRS Cache**: A complete and up-to-date OSRS cache directory. The server is configured to look for this in a ../cache directory relative to the project root.  
-* **Blender**: A recent version of Blender.  
-* **Companion Blender Addon**: The corresponding Blender addon that listens for data from this tool (assumed to be in a separate /blender-addon directory).
+## Local Development
 
-## **🚀 Setup & Installation**
+If you want to run the web app locally:
 
-Follow these steps to get the server up and running on your local machine.
+### Requirements
+- A local web server (Python's `http.server`, `npx serve`, etc.)
+- OSRS cache data files in the `cache/` directory
 
-1. **Clone the Repository**:  
-   git clone https://github.com/Psyda/OSRS-Blender-CharacterCreator.git  
-   cd OSRS-Blender-CharacterCreator
+### Setup
+```bash
+git clone https://github.com/Psyda/OSRS-Blender-CharacterCreator.git
+cd OSRS-Blender-CharacterCreator
+npx serve .
+```
 
-2. Install Dependencies:  
-   Navigate to the /server directory (or the project root, depending on your package.json location) and install the required Node.js packages.  
-   npm install
+Then open `http://localhost:3000` in your browser
 
-3. Position the OSRS Cache:  
-   Make sure your OSRS cache folder is located one directory above your project folder. For example:  
-   /Development/  
-   |-- /cache/         \<-- OSRS cache files here with a valid xteas.json
-   |-- /OSRS-Blender-CharacterCreator/  \<-- Your project folder here
-   |-- /OSRS-Blender-CharacterCreator/runescape-cache-explorer  \<-- Your Cache Explorer Server folder here
-   |-- /OSRS-Blender-CharacterCreator/cache_explorer_bridge  \<-- Your Blender Addon Source code, This must be Zipped so that its like cache_explorer_bridge.zip/cache_explorer_bridge/__init__.py/ < It must have a Zip>Folder>Files layout for Blender to understand.
+## API Endpoints
 
-4. Start the Server:  
-   Run the following command from your project's root directory:  
-   node /OSRS-Blender-CharacterCreator/runescape-cache-explorer.js
+- `GET /api/kits` - Character kits (supports gender, page, limit params)
+- `GET /api/category/:categoryName` - Items by equipment slot
+- `GET /api/search` - Search items by name/ID
+- `POST /api/send-item-to-blender/:itemId/:modelType` - Export item to Blender
+- `POST /api/send-kit-to-blender/:kitId` - Export character kit to Blender
 
-   If successful, you will see a confirmation message in your terminal:  
-   Cache Explorer Server running on http://localhost:3001  
-5. Access the Web Interface:  
-   Open your web browser and navigate to http://localhost:3001.
+## Support Development
 
-## **💡 Usage**
+If this tool helps your OSRS/Blender projects:
 
-### **Web Interface**
+**[☕ Support on Patreon](https://www.patreon.com/c/u5323457)**
 
-* **Blender Connection**: Ensure your Blender instance is open with the companion addon running. Use the "Blender Integration" panel to check the connection status.  
-* **Search Modes**:  
-  * **Search Items**: Select an equipment slot on the character panel to browse items for that slot. Use the search bar to find specific items.  
-  * **Search Kits**: Toggle to "Search Kits" mode to browse available character models. Use the gender filter to narrow down the results.  
-* **Sending to Blender**:  
-  * Click on any item or kit card to add it to your "equipped" set on the left panel.  
-  * Click the **"Send Set to Blender"** button to export all selected items and kits to your connected Blender instance.
+## License
 
-### **Blender Addon**
-
-* Make sure the addon is installed and enabled in Blender.  
-* The addon will automatically listen for incoming data on the configured port (default is 8889).  
-* When you send a set from the web tool, the addon will create a new collection in Blender and import the models.
-
-## **⚙️ API Endpoints**
-
-The server exposes several API endpoints for fetching data.
-
-* GET /api/kits: Get a paginated list of character kits.  
-  * Query Params: gender, page, limit  
-* GET /api/category/:categoryName: Get a paginated list of items in a specific category.  
-  * Query Params: page, limit  
-* GET /api/search: Search for items.  
-  * Query Params: query, category, page, limit  
-* POST /api/send-item-to-blender/:itemId/:modelType: Send a specific item model to Blender.  
-* POST /api/send-kit-to-blender/:kitId: Send a specific kit to Blender.  
-* GET /api/debug/kit/:kitId: Get the raw model data for a kit for debugging purposes.
+MIT License - feel free to fork and modify for your own projects.
