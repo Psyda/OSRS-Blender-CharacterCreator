@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RuneScape Outfit Viewer - Standalone</title>
+    <title>OSRS Outfit Creator for Blender</title>
 	<link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -212,13 +212,13 @@
             }
         }
         
-        function resetPlayerColorUI(colorType) {
-            if (viewer3D) {
-                const defaultHex = viewer3D.resetPlayerColor(colorType);
-                const pickerId = getColorPickerId(colorType);
-                document.getElementById(pickerId).value = defaultHex;
-            }
-        }
+		async function resetPlayerColorUI(colorType) {
+			if (viewer3D) {
+				const defaultHex = await viewer3D.resetPlayerColor(colorType);
+				const pickerId = getColorPickerId(colorType);
+				document.getElementById(pickerId).value = defaultHex;
+			}
+		}
         
         function resetColorPickersUI() {
             if (viewer3D) {

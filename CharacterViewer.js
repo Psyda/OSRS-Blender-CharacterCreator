@@ -622,51 +622,52 @@ class CharacterViewer {
         return equipment;
     }
 
-    async setGender(newGender, internalCall = false) {
-        if (this.gender === newGender) return;
-        if (!internalCall && this.isBusy) {
-            console.warn("Viewer is busy, please wait.");
-            return;
-        }
-        this.isBusy = true;
+	async setGender(newGender, internalCall = false) {
+		if (this.gender === newGender) return;
+		if (!internalCall && this.isBusy) {
+			console.warn("Viewer is busy, please wait.");
+			return;
+		}
+		this.isBusy = true;
 
-        try {
-            this.gender = newGender;
-            const currentItems = Array.from(this.equippedItems.values());
-            const currentKits = Array.from(this.equippedKits.values());
+		try {
+			this.gender = newGender;
+			const currentItems = Array.from(this.equippedItems.values());
+			const currentKits = Array.from(this.equippedKits.values());
 
-            await this.resetCharacter(false); // Reset without equipping defaults
+			// Reset without equipping defaults and preserve current colors
+			await this.resetCharacter(false, false);
 
-            // Re-equip items for the new gender
-            const itemPromises = currentItems.map(item => this.equipItem(item.wearPos1Name, item));
-            await Promise.all(itemPromises);
+			// Re-equip items for the new gender
+			const itemPromises = currentItems.map(item => this.equipItem(item.wearPos1Name, item));
+			await Promise.all(itemPromises);
 
-            // Equip defaults for the new gender first
-            await this.equipDefaultKits();
+			// Equip defaults for the new gender first
+			await this.equipDefaultKits();
 
-            // Then try to equip counterparts for any non-default kits
-            const kitPromises = currentKits.map(async (kit) => {
-                const lookupEntry = this.kitLookup ? this.kitLookup[kit.id] : null;
-                let counterpartId = null;
-    
-                if (lookupEntry) {
-                    counterpartId = (newGender === 'female') ? lookupEntry.femaleCounterpart : lookupEntry.maleCounterpart;
-                }
-    
-                if (counterpartId !== undefined && counterpartId !== null) {
-                    await this.loadKitById(counterpartId);
-                }
-            });
-            await Promise.all(kitPromises);
+			// Then try to equip counterparts for any non-default kits
+			const kitPromises = currentKits.map(async (kit) => {
+				const lookupEntry = this.kitLookup ? this.kitLookup[kit.id] : null;
+				let counterpartId = null;
 
-        } catch (error) {
-            console.error("Error setting gender:", error);
-        } finally {
-            if (!internalCall) {
-                this.isBusy = false;
-            }
-        }
-    }
+				if (lookupEntry) {
+					counterpartId = (newGender === 'female') ? lookupEntry.femaleCounterpart : lookupEntry.maleCounterpart;
+				}
+
+				if (counterpartId !== undefined && counterpartId !== null) {
+					await this.loadKitById(counterpartId);
+				}
+			});
+			await Promise.all(kitPromises);
+
+		} catch (error) {
+			console.error("Error setting gender:", error);
+		} finally {
+			if (!internalCall) {
+				this.isBusy = false;
+			}
+		}
+	}
 
     setupLighting() {
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
@@ -1460,58 +1461,63 @@ class CharacterViewer {
         }
     }
 
-    async resetCharacter(equipDefaults = true) {
-        // This function is now mostly synchronous to avoid race conditions.
-        // It clears the state and the 3D scene, but does not perform any asynchronous model loading.
-        if (this.isBusy && equipDefaults) { 
-            // Allow this to be called internally during a load, but not by the user.
-            console.warn("Viewer is busy, please wait for the current operation to complete.");
-            return;
-        }
-        this.isBusy = true;
-    
-        try {
-            this.hideTooltip();
-            this.hoveredObject = null;
-    
-            // Nuke the old model group and all its children
-            this.scene.remove(this.characterModel);
-            this.characterModel.traverse(object => {
-                if (object.isMesh) {
-                    if (object.geometry) object.geometry.dispose();
-                    if (object.material) {
-                        if (Array.isArray(object.material)) {
-                            object.material.forEach(material => material.dispose());
-                        } else {
-                            object.material.dispose();
-                        }
-                    }
-                }
-            });
-    
-            // Clear all state maps
-            this.equippedItems.clear();
-            this.equippedKits.clear();
-            this.kitMeshes.clear();
-            this.itemMeshes.clear();
-    
-            // Create a fresh group and add it to the scene
-            this.characterModel = new THREE.Group();
-            this.scene.add(this.characterModel);
-    
-            // Reset player colors to their defaults (just the variables, no model rebuild)
-            this.initializePlayerColors();
-            
-            if (equipDefaults) {
-                // This part is async and will re-enable the busy flag itself.
-                await this.equipDefaultKits();
-            }
-        } catch (error) {
-            console.error("Error resetting character:", error);
-        } finally {
-            this.isBusy = false;
-        }
-    }
+	async resetCharacter(equipDefaults = true, resetColors = true) {
+		// This function is now mostly synchronous to avoid race conditions.
+		// It clears the state and the 3D scene, but does not perform any asynchronous model loading.
+		if (this.isBusy && equipDefaults) { 
+			// Allow this to be called internally during a load, but not by the user.
+			console.warn("Viewer is busy, please wait for the current operation to complete.");
+			return;
+		}
+		this.isBusy = true;
+
+		try {
+			this.hideTooltip();
+			this.hoveredObject = null;
+
+			// Nuke the old model group and all its children
+			this.scene.remove(this.characterModel);
+			this.characterModel.traverse(object => {
+				if (object.isMesh) {
+					if (object.geometry) object.geometry.dispose();
+					if (object.material) {
+						if (Array.isArray(object.material)) {
+							object.material.forEach(material => material.dispose());
+						} else {
+							object.material.dispose();
+						}
+					}
+				}
+			});
+
+			// Clear all state maps
+			this.equippedItems.clear();
+			this.equippedKits.clear();
+			this.kitMeshes.clear();
+			this.itemMeshes.clear();
+
+			// Create a fresh group and add it to the scene
+			this.characterModel = new THREE.Group();
+			this.scene.add(this.characterModel);
+
+			// Only reset player colors to their defaults if explicitly requested
+			if (resetColors) {
+				this.initializePlayerColors();
+			} else {
+				// Just rebuild the color override map from current colors
+				this.buildColorOverrideMap();
+			}
+			
+			if (equipDefaults) {
+				// This part is async and will re-enable the busy flag itself.
+				await this.equipDefaultKits();
+			}
+		} catch (error) {
+			console.error("Error resetting character:", error);
+		} finally {
+			this.isBusy = false;
+		}
+	}
 
     toggleWireframe() {
         wireframeMode = !wireframeMode;
