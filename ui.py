@@ -1,13 +1,13 @@
 import bpy
 from bpy.types import Panel
 
-class CACHE_PT_main_panel(Panel):
-    """Main Cache Explorer panel"""
-    bl_label = "Cache Explorer Bridge"
-    bl_idname = "CACHE_PT_main_panel"
+class OSRS_PT_main_panel(Panel):
+    """Main OSRS Bridge panel"""
+    bl_label = "OSRS Bridge"
+    bl_idname = "OSRS_PT_main_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Cache Explorer"
+    bl_category = "OSRS Bridge"
     
     def draw(self, context):
         layout = self.layout
@@ -26,19 +26,82 @@ class CACHE_PT_main_panel(Panel):
         col.label(text="2. Use the web app to send models.")
         col.label(text="3. Models will import automatically.")
 
-class CACHE_PT_server_panel(Panel):
-    """Server control panel"""
-    bl_label = "Server Control"
-    bl_idname = "CACHE_PT_server_panel"
+class OSRS_PT_update_panel(Panel):
+    """Update notification panel"""
+    bl_label = "Updates"
+    bl_idname = "OSRS_PT_update_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Cache Explorer"
-    bl_parent_id = "CACHE_PT_main_panel"
+    bl_category = "OSRS Bridge"
+    bl_parent_id = "OSRS_PT_main_panel"
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    @classmethod
+    def poll(cls, context):
+        # Only show if update system is available and either update is available or user wants to check
+        return (hasattr(context.scene, 'osrs_bridge') and 
+                context.scene.osrs_bridge.check_updates_enabled)
+    
+    def draw(self, context):
+        layout = self.layout
+        props = context.scene.osrs_bridge
+        
+        # Update available notification
+        if props.update_available and not props.update_dismissed:
+            # Prominent update notification
+            box = layout.box()
+            box.alert = True  # Makes the box red/prominent
+            
+            col = box.column(align=True)
+            row = col.row(align=True)
+            row.label(text="Update Available!", icon='INFO')
+            row.operator("osrs.dismiss_update", text="", icon='X', emboss=False)
+            
+            col.separator(factor=0.5)
+            col.label(text=f"Version {props.update_version} is now available")
+            
+            # Action buttons
+            row = col.row(align=True)
+            row.operator("osrs.view_changelog", text="What's New?", icon='TEXT')
+            row.operator("wm.url_open", text="Download", icon='IMPORT').url = "https://github.com/Psyda/OSRS-Blender-CharacterCreator/releases/latest"
+            
+        else:
+            # Regular update check section
+            box = layout.box()
+            col = box.column(align=True)
+            
+            # Current version info
+            from . import bl_info
+            current_version = ".".join(map(str, bl_info["version"]))
+            col.label(text=f"Current Version: v{current_version}", icon='CHECKMARK')
+            
+            # Update check controls
+            row = col.row(align=True)
+            row.operator("osrs.check_updates", text="Check for Updates", icon='FILE_REFRESH')
+            
+            # Settings
+            col.separator(factor=0.5)
+            col.prop(props, "check_updates_enabled", text="Auto-check for updates")
+            
+            # Last check info
+            if props.last_update_check > 0:
+                import time
+                check_time = time.strftime("%H:%M", time.localtime(props.last_update_check))
+                col.label(text=f"Last checked: {check_time}", icon='TIME')
+
+class OSRS_PT_server_panel(Panel):
+    """Server control panel"""
+    bl_label = "Server Control"
+    bl_idname = "OSRS_PT_server_panel"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "OSRS Bridge"
+    bl_parent_id = "OSRS_PT_main_panel"
     bl_options = {'DEFAULT_CLOSED'}
     
     def draw(self, context):
         layout = self.layout
-        props = context.scene.cache_explorer
+        props = context.scene.osrs_bridge
         
         # Server Status and Control
         box = layout.box()
@@ -54,9 +117,9 @@ class CACHE_PT_server_panel(Panel):
         # Start/Stop Button
         row = col.row(align=True)
         if props.server_running:
-            row.operator("cache.stop_server", text="Stop Server", icon='PAUSE')
+            row.operator("osrs.stop_server", text="Stop Server", icon='PAUSE')
         else:
-            row.operator("cache.start_server", text="Start Server", icon='PLAY')
+            row.operator("osrs.start_server", text="Start Server", icon='PLAY')
         
         # Connection Info
         if props.server_running:
@@ -97,25 +160,25 @@ class CACHE_PT_server_panel(Panel):
         for line in lines:
             col.label(text=line)
 
-class CACHE_PT_imports_panel(Panel):
+class OSRS_PT_imports_panel(Panel):
     """Import history panel"""
     bl_label = "Import History"
-    bl_idname = "CACHE_PT_imports_panel"
+    bl_idname = "OSRS_PT_imports_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Cache Explorer"
-    bl_parent_id = "CACHE_PT_main_panel"
+    bl_category = "OSRS Bridge"
+    bl_parent_id = "OSRS_PT_main_panel"
     bl_options = {'DEFAULT_CLOSED'}
     
     def draw(self, context):
         layout = self.layout
-        props = context.scene.cache_explorer
+        props = context.scene.osrs_bridge
         
         # Header with clear button
         row = layout.row(align=True)
         row.label(text=f"Recent Imports ({len(props.imported_items)})")
         if len(props.imported_items) > 0:
-            row.operator("cache.clear_imports", text="", icon='TRASH')
+            row.operator("osrs.clear_imports", text="", icon='TRASH')
         
         layout.separator()
         
@@ -135,14 +198,14 @@ class CACHE_PT_imports_panel(Panel):
                 if i < 9 and i < len(props.imported_items) - 1:
                     box.separator(factor=0.5)
 
-class CACHE_PT_support_panel(Panel):
+class OSRS_PT_support_panel(Panel):
     """About and Support panel"""
     bl_label = "About & Support"
-    bl_idname = "CACHE_PT_support_panel"
+    bl_idname = "OSRS_PT_support_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Cache Explorer"
-    bl_parent_id = "CACHE_PT_main_panel"
+    bl_category = "OSRS Bridge"
+    bl_parent_id = "OSRS_PT_main_panel"
     
     def draw(self, context):
         layout = self.layout

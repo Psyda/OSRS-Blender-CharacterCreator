@@ -16,7 +16,7 @@ def start_character_import(data):
     Prepares for a new character import by creating a collection and importing the appropriate rig
     from 'rig.blend' based on the character's gender.
     """
-    props = bpy.context.scene.cache_explorer
+    props = bpy.context.scene.osrs_bridge
     character_name = data.get('name', 'Character')
     
     # Determine character gender, defaulting to male if not specified.
@@ -76,7 +76,7 @@ def start_character_import(data):
 
 def end_character_import():
     """Finalizes the character import session by applying armature modifiers and parenting meshes to the rig."""
-    props = bpy.context.scene.cache_explorer
+    props = bpy.context.scene.osrs_bridge
     active_collection = get_active_collection()
     
     # Find the rig in the collection
@@ -105,7 +105,7 @@ def end_character_import():
 
 def get_active_collection():
     """Gets the collection designated for the current import session."""
-    props = bpy.context.scene.cache_explorer
+    props = bpy.context.scene.osrs_bridge
     collection_name = props.active_collection_name
     
     if collection_name and collection_name in bpy.data.collections:

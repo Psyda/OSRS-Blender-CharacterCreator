@@ -22,8 +22,8 @@ class ImportedItem(PropertyGroup):
     timestamp: StringProperty(name="Import Time")
     object_count: IntProperty(name="Object Count")
 
-class CacheExplorerProperties(PropertyGroup):
-    """Properties for the Cache Explorer addon"""
+class OSRSBridgeProperties(PropertyGroup):
+    """Properties for the OSRS Bridge addon"""
     server_port: IntProperty(
         name="Port",
         description="Port for the Blender server to listen on",
@@ -63,8 +63,64 @@ class CacheExplorerProperties(PropertyGroup):
         description="The name of the collection currently being imported into",
         default=""
     )
+    
+    # Enhanced update notification properties
+    update_available: BoolProperty(
+        name="Update Available",
+        description="Whether an update is available",
+        default=False
+    )
+    
+    update_version: StringProperty(
+        name="Update Version",
+        description="Latest available version",
+        default=""
+    )
+    
+    update_changelog: StringProperty(
+        name="Update Changelog", 
+        description="Changelog for the latest version",
+        default=""
+    )
+    
+    last_update_check: IntProperty(
+        name="Last Update Check",
+        description="Timestamp of last update check",
+        default=0
+    )
+    
+    update_dismissed: BoolProperty(
+        name="Update Dismissed",
+        description="Whether the user dismissed this update notification",
+        default=False
+    )
+    
+    check_updates_enabled: BoolProperty(
+        name="Check for Updates",
+        description="Automatically check for updates on startup",
+        default=True
+    )
+    
+    # Additional update info for better UX
+    update_release_name: StringProperty(
+        name="Update Release Name",
+        description="Name/title of the latest release",
+        default=""
+    )
+    
+    update_download_url: StringProperty(
+        name="Update Download URL",
+        description="Direct download URL for the latest release",
+        default=""
+    )
+    
+    checking_updates: BoolProperty(
+        name="Checking Updates",
+        description="Whether we're currently checking for updates",
+        default=False
+    )
 
-class CacheExplorerServer:
+class OSRSBridgeServer:
     """HTTP server to receive model data from web application"""
     
     def __init__(self, port):
@@ -81,7 +137,7 @@ class CacheExplorerServer:
             self.socket.listen(5)
             self.running = True
             
-            print(f"Cache Explorer server started on port {self.port}")
+            print(f"OSRS Bridge server started on port {self.port}")
             self.update_status(f"Server listening on port {self.port}")
             
             while self.running:
@@ -281,7 +337,7 @@ class CacheExplorerServer:
             status_data = {
                 "status": "running",
                 "port": self.port,
-                "imported_count": len(bpy.context.scene.cache_explorer.imported_items) if hasattr(bpy.context.scene, 'cache_explorer') else 0
+                "imported_count": len(bpy.context.scene.osrs_bridge.imported_items) if hasattr(bpy.context.scene, 'osrs_bridge') else 0
             }
             response_body = json.dumps(status_data)
             response = f"HTTP/1.1 200 OK\r\n"
@@ -307,11 +363,11 @@ class CacheExplorerServer:
         """Handle importing received model data"""
         def import_in_main_thread():
             try:
-                if not hasattr(bpy.context.scene, 'cache_explorer'):
-                    self.update_status("Error: Cache Explorer properties not found")
+                if not hasattr(bpy.context.scene, 'osrs_bridge'):
+                    self.update_status("Error: OSRS Bridge properties not found")
                     return None
                     
-                props = bpy.context.scene.cache_explorer
+                props = bpy.context.scene.osrs_bridge
                 
                 if props.auto_import:
                     # The importer will now use the active collection set by start_character_import
@@ -348,8 +404,8 @@ class CacheExplorerServer:
         """Update status message in main thread"""
         def update_in_main_thread():
             try:
-                if hasattr(bpy.context.scene, 'cache_explorer'):
-                    bpy.context.scene.cache_explorer.status_message = message
+                if hasattr(bpy.context.scene, 'osrs_bridge'):
+                    bpy.context.scene.osrs_bridge.status_message = message
             except Exception as e:
                 print(f"Status update error: {e}")
             return None
@@ -378,23 +434,23 @@ class CacheExplorerServer:
                 pass
         self.socket = None
 
-class CACHE_OT_start_server(Operator):
-    """Start the Cache Explorer server"""
-    bl_idname = "cache.start_server"
+class OSRS_OT_start_server(Operator):
+    """Start the OSRS Bridge server"""
+    bl_idname = "osrs.start_server"
     bl_label = "Start Server"
-    bl_description = "Start listening for models from Cache Explorer web app"
+    bl_description = "Start listening for models from OSRS Bridge web app"
     
     def execute(self, context):
         global _server_thread, _server_socket, _server_running
         
-        props = context.scene.cache_explorer
+        props = context.scene.osrs_bridge
         
         if props.server_running:
             self.report({'WARNING'}, "Server is already running")
             return {'CANCELLED'}
         
         try:
-            server_instance = CacheExplorerServer(props.server_port)
+            server_instance = OSRSBridgeServer(props.server_port)
             _server_thread = threading.Thread(target=server_instance.start, daemon=True)
             _server_thread.start()
             
@@ -410,16 +466,16 @@ class CACHE_OT_start_server(Operator):
         
         return {'FINISHED'}
 
-class CACHE_OT_stop_server(Operator):
-    """Stop the Cache Explorer server"""
-    bl_idname = "cache.stop_server"
+class OSRS_OT_stop_server(Operator):
+    """Stop the OSRS Bridge server"""
+    bl_idname = "osrs.stop_server"
     bl_label = "Stop Server"
-    bl_description = "Stop the Cache Explorer server"
+    bl_description = "Stop the OSRS Bridge server"
     
     def execute(self, context):
         global _server_thread, _server_socket, _server_running
         
-        props = context.scene.cache_explorer
+        props = context.scene.osrs_bridge
         
         if not props.server_running:
             self.report({'WARNING'}, "Server is not running")
@@ -437,14 +493,14 @@ class CACHE_OT_stop_server(Operator):
         
         return {'FINISHED'}
 
-class CACHE_OT_clear_imports(Operator):
+class OSRS_OT_clear_imports(Operator):
     """Clear the imported items list"""
-    bl_idname = "cache.clear_imports"
+    bl_idname = "osrs.clear_imports"
     bl_label = "Clear Import History"
     bl_description = "Clear the list of imported items"
     
     def execute(self, context):
-        props = context.scene.cache_explorer
+        props = context.scene.osrs_bridge
         props.imported_items.clear()
         self.report({'INFO'}, "Import history cleared")
         return {'FINISHED'}
