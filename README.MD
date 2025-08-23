@@ -36,7 +36,7 @@ If you want to run the web app locally:
 
 ### Setup
 ```bash
-git clone https://github.com/Psyda/OSRS-Blender-CharacterCreator.git
+git clone -b webapp https://github.com/Psyda/OSRS-Blender-CharacterCreator.git
 cd OSRS-Blender-CharacterCreator
 npx serve .
 ```
