@@ -3,8 +3,8 @@ import fs from 'fs';
 import path from 'path';
 
 // Configuration
-const CACHE_PATH = "./cache";
-const OUTPUT_DIR = "./public/cache";
+const CACHE_PATH = "./rawcache";
+const OUTPUT_DIR = "./cache";
 const ENCODE_DATA = true; // Set to false for testing, true for production
 
 // Utility functions
@@ -140,16 +140,19 @@ async function extractCacheData() {
         const wearPos2 = item.wearPos2 !== undefined ? item.wearPos2 : null;
         const wearPos3 = item.wearPos3 !== undefined ? item.wearPos3 : null;
         const models = getItemModels(item);
+        
+        // Determine if item is two-handed by checking wear positions
+        // Two-handed weapons occupy both weapon (3) and shield (5) slots
         const is2H = (wearPos1 === 3 && wearPos2 === 5) || (wearPos1 === 5 && wearPos2 === 3);
         
-        // Track used model IDs
+        // Track used model IDs for later model extraction
         models.forEach(model => {
             model.subModels.forEach(subModel => {
                 extractedModels.add(subModel.id);
             });
         });
         
-        // Determine available genders
+        // Determine available genders based on model availability
         const availableGenders = [];
         const hasMale = models.some(model => model.type === 'male');
         const hasFemale = models.some(model => model.type === 'female');
@@ -157,6 +160,7 @@ async function extractCacheData() {
         if (hasMale) availableGenders.push('male');
         if (hasFemale) availableGenders.push('female');
         
+        // Create full item data structure for individual file
         const itemData = {
             id: i,
             name: item.name,
@@ -182,29 +186,53 @@ async function extractCacheData() {
         saveFile(itemFilePath, itemData);
         extractedItems.add(i);
         
-        // Add to categories for index
+        // Create category entry for master index with all necessary properties
+        const categoryEntry = { 
+            id: i, 
+            name: item.name, 
+            availableGenders, 
+            hasMale, 
+            hasFemale,
+            is2H
+        };
+        
+        // Categorize items for master index
         let categorized = false;
+        
+        // Handle two-handed weapons specially - they only go in Weapon category
         if (is2H) {
-            categories["2H Weapons"].push({ id: i, name: item.name, availableGenders, hasMale, hasFemale });
+            categories["Weapon"].push(categoryEntry);
+            categories["2H Weapons"].push(categoryEntry);
             categorized = true;
         } else {
+            // Only categorize non-2H weapons by their wear positions
+            
+            // Add to primary wear position category
             if (wearPos1 !== null && WEAR_POS[wearPos1]) {
-                categories[WEAR_POS[wearPos1]].push({ id: i, name: item.name, availableGenders, hasMale, hasFemale });
+                categories[WEAR_POS[wearPos1]].push(categoryEntry);
                 categorized = true;
             }
+            
+            // Add to secondary wear position category if different from primary
             if (wearPos2 !== null && WEAR_POS[wearPos2] && wearPos2 !== wearPos1) {
-                categories[WEAR_POS[wearPos2]].push({ id: i, name: item.name, availableGenders, hasMale, hasFemale });
+                categories[WEAR_POS[wearPos2]].push(categoryEntry);
                 categorized = true;
             }
-            if (wearPos3 !== null && WEAR_POS[wearPos3] && wearPos3 !== wearPos2) {
-                categories[WEAR_POS[wearPos3]].push({ id: i, name: item.name, availableGenders, hasMale, hasFemale });
+            
+            // Add to tertiary wear position category if different from others
+            if (wearPos3 !== null && WEAR_POS[wearPos3] && wearPos3 !== wearPos2 && wearPos3 !== wearPos1) {
+                categories[WEAR_POS[wearPos3]].push(categoryEntry);
                 categorized = true;
             }
         }
+        
+        // Items that don't fit standard categories go to "Other"
         if (!categorized) {
-            categories["Other"].push({ id: i, name: item.name, availableGenders, hasMale, hasFemale });
+            categories["Other"].push(categoryEntry);
         }
-        categories["All"].push({ id: i, name: item.name, availableGenders, hasMale, hasFemale });
+        
+        // All items also go to the "All" category for search purposes
+        categories["All"].push(categoryEntry);
         
         itemCount++;
         if (itemCount % 100 === 0) {
@@ -227,7 +255,7 @@ async function extractCacheData() {
         const gender = getKitGender(i, 'unknown');
         let finalBodyPartName = bodyPartName;
         
-        // Use the kitType from lookup if available
+        // Use the kitType from lookup if available for more accurate body part naming
         if (kitLookup && kitLookup[i] && kitLookup[i].kitType) {
             const kitTypeToBodyPart = {
                 'HAIR': 'Hair', 'JAW': 'Jaw', 'TORSO': 'Torso',
@@ -238,13 +266,14 @@ async function extractCacheData() {
         
         const kitName = getKitName(i, kit);
         
-        // Track used model IDs
+        // Track used model IDs for later model extraction
         if (kit.models && kit.models.length > 0) {
             kit.models.forEach(modelId => {
                 extractedModels.add(modelId);
             });
         }
         
+        // Create full kit data structure for individual file
         const kitData = {
             id: i,
             bodyPartId: kit.bodyPartId,
@@ -269,7 +298,7 @@ async function extractCacheData() {
         saveFile(kitFilePath, kitData);
         extractedKits.add(i);
         
-        // Add to categories for index (only kits with models)
+        // Add to categories for index (only kits with models and valid body parts)
         if (finalBodyPartName !== "Unknown" && kitData.models.length > 0) {
             const kitRef = { id: i, name: kitName, gender: gender };
             
@@ -304,6 +333,7 @@ async function extractCacheData() {
                 continue;
             }
             
+            // Create model data structure optimized for Three.js usage
             const modelData = {
                 modelId: modelId,
                 vertexCount: model.vertexCount,
@@ -341,28 +371,30 @@ async function extractCacheData() {
     
     console.log(`✅ Extracted ${modelCount} models`);
 
-    // Sort categories
+    // Sort all categories alphabetically by name for consistent ordering
     Object.keys(categories).forEach(category => {
         categories[category].sort((a, b) => a.name.localeCompare(b.name));
     });
     
+    // Sort kit categories by ID for consistent ordering
     Object.keys(kitCategories).forEach(bodyPart => {
         Object.keys(kitCategories[bodyPart]).forEach(gender => {
             kitCategories[bodyPart][gender].sort((a, b) => a.id - b.id);
         });
     });
 
-    // Create search index
+    // Create search index with all necessary properties for frontend filtering
     const searchIndex = categories["All"].map(item => ({
         id: item.id,
         name: item.name.toLowerCase(),
         nameOriginal: item.name,
         availableGenders: item.availableGenders,
         hasMale: item.hasMale,
-        hasFemale: item.hasFemale
+        hasFemale: item.hasFemale,
+        is2H: item.is2H
     })).sort((a, b) => a.name.localeCompare(b.name));
 
-    // Create master index
+    // Create master index with all metadata and structure information
     const masterIndex = {
         version: "1.0.0",
         extractedAt: new Date().toISOString(),
@@ -398,16 +430,24 @@ async function extractCacheData() {
     console.log(`   - Structure: Individual files per ID`);
     console.log(`   - Encoded: ${ENCODE_DATA ? 'Yes' : 'No'}`);
     
-    // Show directory sizes
+    // Show directory sizes and structure
     const itemsDirSize = fs.readdirSync(path.join(OUTPUT_DIR, 'items')).length;
     const kitsDirSize = fs.readdirSync(path.join(OUTPUT_DIR, 'kits')).length;
     const modelsDirSize = fs.readdirSync(path.join(OUTPUT_DIR, 'models')).length;
     
-    console.log(`📁 Files created:`);
+    console.log(`🗂️ Files created:`);
     console.log(`   - items/: ${itemsDirSize} files`);
     console.log(`   - kits/: ${kitsDirSize} files`);
     console.log(`   - models/: ${modelsDirSize} files`);
     console.log(`   - index.json: Master index`);
+    
+    // Show 2H weapon statistics
+    const twoHandedCount = categories["2H Weapons"].length;
+    const weaponCount = categories["Weapon"].length;
+    console.log(`⚔️ Weapon categories:`);
+    console.log(`   - Total weapons: ${weaponCount} (includes 2H)`);
+    console.log(`   - 2H weapons: ${twoHandedCount}`);
+    console.log(`   - 1H weapons: ${weaponCount - twoHandedCount}`);
 }
 
 // Run the extraction

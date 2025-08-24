@@ -623,14 +623,6 @@
         // --- EQUIPMENT LOGIC ---
         async function equipItem(item) {
             if (!currentCategory) return;
-            if (item.is2H) {
-                if (currentCategory === 'Weapon') unequipSlot('Shield', true);
-                if (currentCategory === 'Shield') unequipSlot('Weapon', true);
-            }
-            const equippedWeapon = viewer3D.equippedItems.get('Weapon');
-            if (equippedWeapon && equippedWeapon.is2H && currentCategory === 'Shield') {
-                unequipSlot('Weapon', true);
-            }
             
             // Load the full item data and equip it
             try {
