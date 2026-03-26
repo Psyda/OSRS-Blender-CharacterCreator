@@ -1,6 +1,6 @@
 # Oldschool RuneScape Character Creator for Blender
 
-**[☕ Support on Patreon](https://www.patreon.com/c/u5323457)** | **[🌐 Try the Web App](https://Psyda.github.io/OSRS-Blender-CharacterCreator/)**
+**[☕ Support on Patreon](https://www.patreon.com/c/psyda)** | **[🌐 Try the Web App](https://Psyda.github.io/OSRS-Blender-CharacterCreator/)**
 
 A web-based character creator for Old School RuneScape that integrates directly with Blender. Browse items, character kits, and equipment with a clean interface, then export complete character builds to Blender with one click.
 
