@@ -55,7 +55,7 @@ Then open `http://localhost:3000` in your browser
 
 If this tool helps your OSRS/Blender projects:
 
-**[☕ Support on Patreon](https://www.patreon.com/c/u5323457)**
+**[☕ Support on Patreon](https://www.patreon.com/c/psyda)**
 
 ## License
 
