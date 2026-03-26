@@ -219,7 +219,7 @@ class OSRS_PT_support_panel(Panel):
         # Link Buttons
         row = col.row(align=True)
         row.operator("wm.url_open", text="GitHub", icon='URL').url = "https://github.com/Psyda/OSRS-Blender-CharacterCreator" 
-        row.operator("wm.url_open", text="Patreon", icon='FUND').url = "https://www.patreon.com/c/u5323457"
+        row.operator("wm.url_open", text="Patreon", icon='FUND').url = "https://www.patreon.com/c/psyda"
         
         col.separator()
         
